@@ -1,0 +1,36 @@
+# Ignore CSV files
+*.csv
+
+# Ignore log files
+*.log
+
+# Ignore JSON files
+*.json
+
+# Ignore text files
+*.txt
+
+# Ignore venv folder
+venv/
+
+# Ignore .venv folder
+.venv/
+
+myenv/
+
+# Ignore bin directory
+bin/
+
+# Ignore Results directory
+Results/
+
+# Ignore Python bytecode files
+__pycache__/
+
+# Ignore stocksList file
+stocksList
+
+# Ignore shell script files
+*.sh
+
+.csv

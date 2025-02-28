@@ -1,6 +1,6 @@
 import numpy as np
-# import talib as ta
-import ta
+import talib as ta
+# import ta
 from backtestTools.expiry import getExpiryData
 from datetime import datetime, time, timedelta
 from backtestTools.algoLogic import optOverNightAlgoLogic, optIntraDayAlgoLogic
@@ -56,8 +56,8 @@ class algoLogic(optIntraDayAlgoLogic):
         
         #Creating RSI Columns for 15 Min Data:
 
-        # df_15min["rsi"] = ta.RSI(df_15min["c"], timeperiod=14)#rsi values using talib library
-        df_15min['rsi'] = ta.momentum.RSIIndicator(df_15min['c'], window=14).rsi()
+        df_15min["rsi"] = ta.RSI(df_15min["c"], timeperiod=14)#rsi values using talib library
+        # df_15min['rsi'] = ta.momentum.RSIIndicator(df_15min['c'], window=14).rsi()
 
         df_15min.dropna(inplace=True)#dropping null values
         df_15min['prev_rsi'] = df_15min['rsi'].shift(1)

@@ -18,6 +18,8 @@ venv/
 
 myenv/
 
+myenvv/
+
 # Ignore bin directory
 bin/
 

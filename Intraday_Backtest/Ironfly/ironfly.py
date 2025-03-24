@@ -26,12 +26,6 @@ class algoLogic(optOverNightAlgoLogic):
 
         df.dropna(inplace=True)
         df_5min.dropna(inplace=True)
-        df_5min['ema_5'] = ta.EMA(df_5min['c'], timeperiod=5)
-        df_5min['ema_10'] = ta.EMA(df_5min['c'], timeperiod=10)
-        df_5min.dropna(inplace=True)
-
-        df_5min["EntryPutSell"] = np.where((df_5min['ema_5'] > df_5min['ema_10'] ) & (df_5min['ema_5'].shift(1) <= df_5min['ema_10'].shift(1)), "EntryPutSell", "")
-        df_5min["EntryCallSell"] = np.where((df_5min['ema_5'] < df_5min['ema_10'] ) & (df_5min['ema_5'].shift(1) >= df_5min['ema_10'].shift(1)), "EntryCallSell", "")
 
         df_5min = df_5min[df_5min.index > startEpoch]
         df.to_csv(f"{self.fileDir['backtestResultsCandleData']}{indexName}_1Min.csv")
@@ -66,7 +60,7 @@ class algoLogic(optOverNightAlgoLogic):
                 continue
 
             if (timeData-300) in df_5min.index:
-                self.strategyLogger.info(f"Datetime: {self.humanTime}\tClose: {df.at[lastIndexTimeData[1],'c']}\tema_5: {df_5min.at[last5MinIndexTimeData[1],'ema_5']}\tema_10: {df_5min.at[last5MinIndexTimeData[1],'ema_10']}")
+                self.strategyLogger.info(f"Datetime: {self.humanTime}\tClose: {df.at[lastIndexTimeData[1],'c']}")
 
             if not self.openPnl.empty:
                 for index, row in self.openPnl.iterrows():
@@ -86,54 +80,55 @@ class algoLogic(optOverNightAlgoLogic):
             if not self.openPnl.empty:
                 for index, row in self.openPnl.iterrows():
 
-                    symSide = row["Symbol"]
-                    symSide = symSide[len(symSide) - 2:]
-      
-                    if row["CurrentPrice"] <= row["Target"]:
-                        exitType = "Target Hit"
-                        self.exitOrder(index, exitType, row["CurrentPrice"])
-
-                    elif row["CurrentPrice"] >= row["Stoploss"]:
-                        exitType = "Stoploss Hit"
-                        self.exitOrder(index, exitType, row["CurrentPrice"])
-
-                    elif self.timeData >= row["Expiry"]:
-                        exitType = "Intraday Exit"
+                    if self.humanTime.time() == time(15, 15):
+                        exitType = "TimeUp"
                         self.exitOrder(index, exitType)
 
             # tradecount = self.openPnl['Symbol'].str[-2:].value_counts()
             # callCounter= tradecount.get('CE',0)
             # putCounter= tradecount.get('PE',0)
 
-            if ((timeData-300) in df_5min.index) and self.openPnl.empty:
+            if ((timeData-300) in df_5min.index) and self.openPnl.empty and self.humanTime.time() == time(10, 15):
+                
+                #Call Entry
+                callSym = self.getCallSym(self.timeData, baseSym, df_5min.at[last5MinIndexTimeData[1], "c"],expiry= Currentexpiry)
 
-                if df_5min.at[last5MinIndexTimeData[1], "EntryCallSell"] == "EntryCallSell":
-                    callSym = self.getCallSym(self.timeData, baseSym, df_5min.at[last5MinIndexTimeData[1], "c"],expiry= Currentexpiry)
+                try:
+                    data = self.fetchAndCacheFnoHistData(callSym, lastIndexTimeData[1])
+                except Exception as e:
+                    self.strategyLogger.info(e)
 
-                    try:
-                        data = self.fetchAndCacheFnoHistData(callSym, lastIndexTimeData[1])
-                    except Exception as e:
-                        self.strategyLogger.info(e)
+                self.entryOrder(data["c"], callSym, lotSize, "SELL")
+                
+                #callHedge Entry
+                callSym = self.getCallSym(self.timeData, baseSym, df_5min.at[last5MinIndexTimeData[1], "c"],expiry= Currentexpiry, otmFactor=2)
 
-                    target = 0.7 * data["c"]
-                    stoploss = 1.3 * data["c"]
+                try:
+                    data = self.fetchAndCacheFnoHistData(callSym, lastIndexTimeData[1])
+                except Exception as e:
+                    self.strategyLogger.info(e)
 
-                    self.entryOrder(data["c"], callSym, lotSize, "SELL", {
-                    "Target": target,"Stoploss": stoploss,"Expiry": expiryEpoch, })
+                self.entryOrder(data["c"], callSym, lotSize, "SELL")
 
-                if df_5min.at[last5MinIndexTimeData[1], "EntryPutSell"] == "EntryPutSell":
-                    putSym = self.getPutSym(self.timeData, baseSym, df_5min.at[last5MinIndexTimeData[1], "c"],expiry= Currentexpiry)
+                #Put Entry
+                putSym = self.getPutSym(self.timeData, baseSym, df_5min.at[last5MinIndexTimeData[1], "c"],expiry= Currentexpiry)
 
-                    try:
-                        data = self.fetchAndCacheFnoHistData(putSym, lastIndexTimeData[1])
-                    except Exception as e:
-                        self.strategyLogger.info(e)
+                try:
+                    data = self.fetchAndCacheFnoHistData(putSym, lastIndexTimeData[1])
+                except Exception as e:
+                    self.strategyLogger.info(e)
 
-                    target = 0.7 * data["c"]
-                    stoploss = 1.3 * data["c"]
+                self.entryOrder(data["c"], putSym, lotSize, "SELL")
 
-                    self.entryOrder(data["c"], putSym, lotSize, "SELL", {
-                    "Target": target,"Stoploss": stoploss,"Expiry": expiryEpoch, },)
+                #Put Hedge Entry
+                putSym = self.getPutSym(self.timeData, baseSym, df_5min.at[last5MinIndexTimeData[1], "c"],expiry= Currentexpiry,otmFactor=2)
+
+                try:
+                    data = self.fetchAndCacheFnoHistData(putSym, lastIndexTimeData[1])
+                except Exception as e:
+                    self.strategyLogger.info(e)
+
+                self.entryOrder(data["c"], putSym, lotSize, "BUY")
 
         self.pnlCalculator()
         self.combinePnlCsv()

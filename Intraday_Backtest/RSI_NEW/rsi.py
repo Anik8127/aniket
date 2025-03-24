@@ -247,7 +247,7 @@ while currentDate <= endDate:
             currentDate.year, currentDate.month, currentDate.day, 9, 15, 0)
         endTime = datetime(
             currentDate.year, currentDate.month, currentDate.day, 15, 30, 0)
-
+       
         p = mp.Process(target=algo.run, args=(
             startTime, endTime, baseSym, indexName))
         p.start()
@@ -259,6 +259,7 @@ while currentDate <= endDate:
             processes = []
 
         currentDate += timedelta(days=1)
+        
 
 end = datetime.now()
 print(f"Done. Ended in {end-start}.")

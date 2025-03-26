@@ -26,13 +26,12 @@ class algoLogic(optOverNightAlgoLogic):
 
         df.dropna(inplace=True)
         df_5min.dropna(inplace=True)
-        results = taa.supertrend(df_5min["h"], df_5min["l"], df_5min["c"], length=10, multiplier=3.0)
-        df_5min["Supertrend"] = results["SUPERTd_10_3.0"]
-        df["Supertrend"] = results["SUPERTd_10_3.0"]
-        df_5min['macd'], df_5min['macdsignal'], df_5min['macdhist'] = ta.MACD(df_5min['c'], fastperiod=12, slowperiod=26, signalperiod=9)
+        df_5min['ema_5'] = ta.EMA(df_5min['c'], timeperiod=5)
+        df_5min['ema_10'] = ta.EMA(df_5min['c'], timeperiod=10)
         df_5min.dropna(inplace=True)
-        df_5min['macdBullish'] = np.where((df_5min['macd'] > df_5min['macdsignal']) & (df_5min['macd'].shift(1) < df_5min['macdsignal'].shift(1)), "macdBullish", "")
-        df_5min['macdBearish'] = np.where((df_5min['macd'] < df_5min['macdsignal']) & (df_5min['macd'].shift(1) > df_5min['macdsignal'].shift(1)), "macdBearish", "")
+
+        df_5min["EntryPutSell"] = np.where((df_5min['ema_5'] > df_5min['ema_10'] ) & (df_5min['ema_5'].shift(1) <= df_5min['ema_10'].shift(1)), "EntryPutSell", "")
+        df_5min["EntryCallSell"] = np.where((df_5min['ema_5'] < df_5min['ema_10'] ) & (df_5min['ema_5'].shift(1) >= df_5min['ema_10'].shift(1)), "EntryCallSell", "")
 
         df_5min = df_5min[df_5min.index > startEpoch]
         df.to_csv(f"{self.fileDir['backtestResultsCandleData']}{indexName}_1Min.csv")
@@ -67,7 +66,7 @@ class algoLogic(optOverNightAlgoLogic):
                 continue
 
             if (timeData-300) in df_5min.index:
-                self.strategyLogger.info(f"Datetime: {self.humanTime}\tClose: {df.at[lastIndexTimeData[1],'c']}\Supertrend: {df_5min.at[last5MinIndexTimeData[1],'Supertrend']}\tmacdBullish: {df_5min.at[last5MinIndexTimeData[1],'macdBullish']}\tmacdBearish: {df_5min.at[last5MinIndexTimeData[1],'macdBearish']}\tmacdsignal: {df_5min.at[last5MinIndexTimeData[1],'macdsignal']}")
+                self.strategyLogger.info(f"Datetime: {self.humanTime}\tClose: {df.at[lastIndexTimeData[1],'c']}\tema_5: {df_5min.at[last5MinIndexTimeData[1],'ema_5']}\tema_10: {df_5min.at[last5MinIndexTimeData[1],'ema_10']}")
 
             if not self.openPnl.empty:
                 for index, row in self.openPnl.iterrows():
@@ -89,8 +88,15 @@ class algoLogic(optOverNightAlgoLogic):
 
                     symSide = row["Symbol"]
                     symSide = symSide[len(symSide) - 2:]
-      
-                    if row["CurrentPrice"] <= row["Target"]:
+
+                    symSide = row["Symbol"]
+                    symSide = symSide[len(symSide)-2:]
+
+                    if self.timeData >= row["Expiry"]:
+                        exitType = "Intraday Exit"
+                        self.exitOrder(index, exitType)
+
+                    elif row["CurrentPrice"] <= row["Target"]:
                         exitType = "Target Hit"
                         self.exitOrder(index, exitType, row["CurrentPrice"])
 
@@ -98,21 +104,22 @@ class algoLogic(optOverNightAlgoLogic):
                         exitType = "Stoploss Hit"
                         self.exitOrder(index, exitType, row["CurrentPrice"])
 
-                    elif self.timeData >= row["Expiry"]:
-                        exitType = "Time Up"
+                    elif (df_5min.at[last5MinIndexTimeData[1], "EntryPutSell"] == "EntryPutSell") and (symSide == "CE"):
+                        exitType = "CallExitCrossover"
                         self.exitOrder(index, exitType)
                         
-                    elif self.humanTime.time() == time(15, 15):
-                        exitType = "TimeUp"
-                        self.exitOrder(index, exitType)    
+                    elif (df_5min.at[last5MinIndexTimeData[1], "EntryCallSell"] == "EntryCallSell") and (symSide == "PE"):
+                        exitType = "PutExitCrossover"
+                        self.exitOrder(index, exitType)
 
-            tradecount = self.openPnl['Symbol'].str[-2:].value_counts()
-            callCounter= tradecount.get('CE',0)
-            putCounter= tradecount.get('PE',0)
+
+            # tradecount = self.openPnl['Symbol'].str[-2:].value_counts()
+            # callCounter= tradecount.get('CE',0)
+            # putCounter= tradecount.get('PE',0)
 
             if ((timeData-300) in df_5min.index) and self.openPnl.empty:
 
-                if callCounter < 3 and df_5min.at[last5MinIndexTimeData[1], "Supertrend"] == 1 and df_5min.at[last5MinIndexTimeData[1], "macdBullish"] == "macdBullish":
+                if df_5min.at[last5MinIndexTimeData[1], "EntryCallSell"] == "EntryCallSell":
                     callSym = self.getCallSym(self.timeData, baseSym, df_5min.at[last5MinIndexTimeData[1], "c"],expiry= Currentexpiry)
 
                     try:
@@ -120,24 +127,24 @@ class algoLogic(optOverNightAlgoLogic):
                     except Exception as e:
                         self.strategyLogger.info(e)
 
-                    target = 1.3 * data["c"]
-                    stoploss = 0.7 * data["c"]
+                    target = 0.7 * data["c"]
+                    stoploss = 1.3 * data["c"]
 
-                    self.entryOrder(data["c"], callSym, lotSize, "BUY", {
+                    self.entryOrder(data["c"], callSym, lotSize, "SELL", {
                     "Target": target,"Stoploss": stoploss,"Expiry": expiryEpoch, })
 
-                if putCounter < 3 and df.at[lastIndexTimeData[1], "Supertrend"] == -1 and df.at[lastIndexTimeData[1], "macdBearish"] == "macdBearish":
-                    putSym = self.getPutSym(self.timeData, baseSym, df.at[lastIndexTimeData[1], "c"],expiry= Currentexpiry)
+                if df_5min.at[last5MinIndexTimeData[1], "EntryPutSell"] == "EntryPutSell":
+                    putSym = self.getPutSym(self.timeData, baseSym, df_5min.at[last5MinIndexTimeData[1], "c"],expiry= Currentexpiry)
 
                     try:
                         data = self.fetchAndCacheFnoHistData(putSym, lastIndexTimeData[1])
                     except Exception as e:
                         self.strategyLogger.info(e)
 
-                    target = 1.3 * data["c"]
-                    stoploss = 0.7 * data["c"]
+                    target = 0.7 * data["c"]
+                    stoploss = 1.3 * data["c"]
 
-                    self.entryOrder(data["c"], putSym, lotSize, "BUY", {
+                    self.entryOrder(data["c"], putSym, lotSize, "SELL", {
                     "Target": target,"Stoploss": stoploss,"Expiry": expiryEpoch, },)
 
         self.pnlCalculator()
@@ -150,11 +157,11 @@ if __name__ == "__main__":
     startTime = datetime.now()
 
     devName = "Aniket"
-    strategyName = "Supertrend_MACD"
+    strategyName = "Ema_Crossover"
     version = "v1"
 
-    startDate = datetime(2024, 1, 1, 9, 15)
-    endDate = datetime(2025, 1, 25, 15, 30)
+    startDate = datetime(2023, 1, 1, 9, 15)
+    endDate = datetime(2023, 1, 25, 15, 30)
 
     algo = algoLogic(devName, strategyName, version)
 

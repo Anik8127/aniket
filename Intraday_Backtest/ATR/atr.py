@@ -76,11 +76,7 @@ class algoLogic(optOverNightAlgoLogic):
 
             self.pnlCalculator()
 
-            if self.humanTime.date() == expiryDatetime.date() :
-                Currentexpiry = getExpiryData(self.timeData+86400, baseSym)['CurrentExpiry']
-                expiryDatetime = datetime.strptime(Currentexpiry, "%d%b%y").replace(hour=15, minute=20)
-                expiryEpoch= expiryDatetime.timestamp()
-                
+            
             if not self.openPnl.empty:
                 for index, row in self.openPnl.iterrows():
 

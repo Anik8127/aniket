@@ -27,7 +27,7 @@ class algoLogic(optOverNightAlgoLogic):
         df.dropna(inplace=True)
         df_5min.dropna(inplace=True)
 
-        df_5min = df_5min[df_5min.index > startEpoch]
+        df_5min = df_5min[df_5min.index >= startEpoch]
         df.to_csv(f"{self.fileDir['backtestResultsCandleData']}{indexName}_1Min.csv")
         df_5min.to_csv(f"{self.fileDir['backtestResultsCandleData']}{indexName}_5Min.csv")
 
@@ -35,6 +35,7 @@ class algoLogic(optOverNightAlgoLogic):
         putEntryAllow = True        
         lastIndexTimeData = [0, 0]
         last5MinIndexTimeData = [0, 0]
+        entry = False
 
         Currentexpiry = getExpiryData(startEpoch, baseSym)['CurrentExpiry']
         expiryDatetime = datetime.strptime(Currentexpiry, "%d%b%y").replace(hour=15, minute=20)
@@ -72,59 +73,66 @@ class algoLogic(optOverNightAlgoLogic):
 
             self.pnlCalculator()
 
-           
+            if self.humanTime.date() > expiryDatetime.date() : #next day after expiry to build condor
+                Currentexpiry = getExpiryData(self.timeData, baseSym)['CurrentExpiry']
+                expiryDatetime = datetime.strptime(Currentexpiry, "%d%b%y").replace(hour=15, minute=20)
+                expiryEpoch= expiryDatetime.timestamp()
+                entry= True
+                
             if not self.openPnl.empty:
                 for index, row in self.openPnl.iterrows():
 
-                    if self.humanTime.time() == time(15, 15):
-                        exitType = "TimeUp"
+                    if self.timeData >= row["Expiry"]:
+                        exitType = "Expiry Exit"
                         self.exitOrder(index, exitType)
 
             # tradecount = self.openPnl['Symbol'].str[-2:].value_counts()
             # callCounter= tradecount.get('CE',0)
             # putCounter= tradecount.get('PE',0)
 
-            if ((timeData-300) in df_5min.index) and self.openPnl.empty and self.humanTime.time() == time(10, 15):
+            if ((timeData-300) in df_5min.index) and self.openPnl.empty:
+                if entry == True and self.humanTime.time() == time(10, 15):    
                 
-                #Call Entry
-                callSym = self.getCallSym(self.timeData, baseSym, df_5min.at[last5MinIndexTimeData[1], "c"],expiry= Currentexpiry)
+                    #Call Entry
+                    callSym = self.getCallSym(self.timeData, baseSym, df_5min.at[last5MinIndexTimeData[1], "c"],expiry= Currentexpiry, otmFactor=4)
 
-                try:
-                    data = self.fetchAndCacheFnoHistData(callSym, lastIndexTimeData[1])
-                except Exception as e:
-                    self.strategyLogger.info(e)
+                    try:
+                        data = self.fetchAndCacheFnoHistData(callSym, lastIndexTimeData[1])
+                    except Exception as e:
+                        self.strategyLogger.info(e)
 
-                self.entryOrder(data["c"], callSym, lotSize, "SELL")
-                
-                #callHedge Entry
-                callSym = self.getCallSym(self.timeData, baseSym, df_5min.at[last5MinIndexTimeData[1], "c"],expiry= Currentexpiry, otmFactor=2)
+                    self.entryOrder(data["c"], callSym, lotSize, "BUY", {"Expiry": expiryEpoch},)
 
-                try:
-                    data = self.fetchAndCacheFnoHistData(callSym, lastIndexTimeData[1])
-                except Exception as e:
-                    self.strategyLogger.info(e)
+                    #callHedge Entry
+                    callSym = self.getCallSym(self.timeData, baseSym, df_5min.at[last5MinIndexTimeData[1], "c"],expiry= Currentexpiry, otmFactor=2)
 
-                self.entryOrder(data["c"], callSym, lotSize, "SELL")
+                    try:
+                        data = self.fetchAndCacheFnoHistData(callSym, lastIndexTimeData[1])
+                    except Exception as e:
+                        self.strategyLogger.info(e)
 
-                #Put Entry
-                putSym = self.getPutSym(self.timeData, baseSym, df_5min.at[last5MinIndexTimeData[1], "c"],expiry= Currentexpiry)
+                    self.entryOrder(data["c"], callSym, lotSize, "SELL", {"Expiry": expiryEpoch},)
 
-                try:
-                    data = self.fetchAndCacheFnoHistData(putSym, lastIndexTimeData[1])
-                except Exception as e:
-                    self.strategyLogger.info(e)
+                    #Put Entry
+                    putSym = self.getPutSym(self.timeData, baseSym, df_5min.at[last5MinIndexTimeData[1], "c"],expiry= Currentexpiry, otmFactor=4)
 
-                self.entryOrder(data["c"], putSym, lotSize, "SELL")
+                    try:
+                        data = self.fetchAndCacheFnoHistData(putSym, lastIndexTimeData[1])
+                    except Exception as e:
+                        self.strategyLogger.info(e)
 
-                #Put Hedge Entry
-                putSym = self.getPutSym(self.timeData, baseSym, df_5min.at[last5MinIndexTimeData[1], "c"],expiry= Currentexpiry,otmFactor=2)
+                    self.entryOrder(data["c"], putSym, lotSize, "BUY", {"Expiry": expiryEpoch},)
 
-                try:
-                    data = self.fetchAndCacheFnoHistData(putSym, lastIndexTimeData[1])
-                except Exception as e:
-                    self.strategyLogger.info(e)
+                    #Put Hedge Entry
+                    putSym = self.getPutSym(self.timeData, baseSym, df_5min.at[last5MinIndexTimeData[1], "c"],expiry= Currentexpiry,otmFactor=2)
 
-                self.entryOrder(data["c"], putSym, lotSize, "BUY")
+                    try:
+                        data = self.fetchAndCacheFnoHistData(putSym, lastIndexTimeData[1])
+                    except Exception as e:
+                        self.strategyLogger.info(e)
+
+                    self.entryOrder(data["c"], putSym, lotSize, "SELL", {"Expiry": expiryEpoch},)
+                    entry=False
 
         self.pnlCalculator()
         self.combinePnlCsv()
@@ -136,11 +144,11 @@ if __name__ == "__main__":
     startTime = datetime.now()
 
     devName = "Aniket"
-    strategyName = "Ema_Crossover"
+    strategyName = "Iron Condor"
     version = "v1"
 
-    startDate = datetime(2023, 1, 1, 9, 15)
-    endDate = datetime(2023, 1, 25, 15, 30)
+    startDate = datetime(2024, 1, 1, 9, 15)
+    endDate = datetime(2024, 12, 31, 15, 30)
 
     algo = algoLogic(devName, strategyName, version)
 
@@ -150,10 +158,10 @@ if __name__ == "__main__":
     closedPnl, fileDir = algo.run(startDate, endDate, baseSym, indexName)
 
     print("Calculating Daily Pnl")
-    dr = calculateDailyReport(closedPnl, fileDir, timeFrame=timedelta(minutes=5), mtm=True)
+    # dr = calculateDailyReport(closedPnl, fileDir, timeFrame=timedelta(minutes=5), mtm=True)
 
-    limitCapital(closedPnl, fileDir, maxCapitalAmount=1000)
-    generateReportFile(dr, fileDir)
+    # limitCapital(closedPnl, fileDir, maxCapitalAmount=1000)
+    # generateReportFile(dr, fileDir)
 
     endTime = datetime.now()
     print(f"Done. Ended in {endTime-startTime}")

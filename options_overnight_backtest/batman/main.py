@@ -31,8 +31,7 @@ class algoLogic(optOverNightAlgoLogic):
         df.to_csv(f"{self.fileDir['backtestResultsCandleData']}{indexName}_1Min.csv")
         df_5min.to_csv(f"{self.fileDir['backtestResultsCandleData']}{indexName}_5Min.csv")
 
-        callEntryAllow = True
-        putEntryAllow = True        
+                
         lastIndexTimeData = [0, 0]
         last5MinIndexTimeData = [0, 0]
         entry = False
@@ -103,15 +102,20 @@ class algoLogic(optOverNightAlgoLogic):
 
                     self.entryOrder(data["c"], callSym, lotSize, "BUY", {"Expiry": expiryEpoch},)
 
-                    #callHedge Entry
-                    callSym = self.getCallSym(self.timeData, baseSym, df_5min.at[last5MinIndexTimeData[1], "c"],expiry= Currentexpiry, otmFactor=2)
+                    # Call Hedge Entry
+                    callSym = self.getCallSym(self.timeData, baseSym, df_5min.at[last5MinIndexTimeData[1], "c"], expiry=Currentexpiry, otmFactor=2)
 
                     try:
+                        # Fetch data once and reuse it
                         data = self.fetchAndCacheFnoHistData(callSym, lastIndexTimeData[1])
                     except Exception as e:
                         self.strategyLogger.info(e)
 
-                    self.entryOrder(data["c"], callSym, lotSize, "SELL", {"Expiry": expiryEpoch},)
+                    self.entryOrder(data["c"], callSym, lotSize, "SELL", {"Expiry": expiryEpoch})
+                    self.entryOrder(data["c"], callSym, lotSize, "SELL", {"Expiry": expiryEpoch})
+
+                    
+
 
                     #Put Entry
                     putSym = self.getPutSym(self.timeData, baseSym, df_5min.at[last5MinIndexTimeData[1], "c"],expiry= Currentexpiry, otmFactor=4)
@@ -122,17 +126,23 @@ class algoLogic(optOverNightAlgoLogic):
                         self.strategyLogger.info(e)
 
                     self.entryOrder(data["c"], putSym, lotSize, "BUY", {"Expiry": expiryEpoch},)
+                    
 
-                    #Put Hedge Entry
-                    putSym = self.getPutSym(self.timeData, baseSym, df_5min.at[last5MinIndexTimeData[1], "c"],expiry= Currentexpiry,otmFactor=2)
+                    # Put Hedge Entry
+                    callSym = self.getPutSym(self.timeData, baseSym, df_5min.at[last5MinIndexTimeData[1], "c"], expiry=Currentexpiry, otmFactor=2)
 
                     try:
-                        data = self.fetchAndCacheFnoHistData(putSym, lastIndexTimeData[1])
+                        # Fetch data once and reuse it
+                        data = self.fetchAndCacheFnoHistData(callSym, lastIndexTimeData[1])
                     except Exception as e:
                         self.strategyLogger.info(e)
 
-                    self.entryOrder(data["c"], putSym, lotSize, "SELL", {"Expiry": expiryEpoch},)
-                    entry=False
+                    self.entryOrder(data["c"], callSym, lotSize, "SELL", {"Expiry": expiryEpoch})
+                    self.entryOrder(data["c"], callSym, lotSize, "SELL", {"Expiry": expiryEpoch})
+                    
+                    
+
+                    
 
         self.pnlCalculator()
         self.combinePnlCsv()
@@ -144,7 +154,7 @@ if __name__ == "__main__":
     startTime = datetime.now()
 
     devName = "Aniket"
-    strategyName = "Iron Condor"
+    strategyName = "Batman"
     version = "v1"
 
     startDate = datetime(2024, 1, 1, 9, 15)

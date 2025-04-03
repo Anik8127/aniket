@@ -26,6 +26,7 @@ class algoLogic(optOverNightAlgoLogic):
 
         df.dropna(inplace=True)
         df_5min.dropna(inplace=True)
+        
         df_5min['atr'] = ta.ATR(df_5min['h'], df_5min['l'], df_5min['c'], timeperiod=14)
         df_5min.dropna(inplace=True)
 
@@ -83,6 +84,12 @@ class algoLogic(optOverNightAlgoLogic):
                         self.strategyLogger.info(e)
 
             self.pnlCalculator()
+
+            if self.humanTime.date() > expiryDatetime.date() : #next day after expiry to build condor
+                Currentexpiry = getExpiryData(self.timeData, baseSym)['CurrentExpiry']
+                expiryDatetime = datetime.strptime(Currentexpiry, "%d%b%y").replace(hour=15, minute=20)
+                expiryEpoch= expiryDatetime.timestamp()
+                entry= True
 
             
             if not self.openPnl.empty:

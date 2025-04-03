@@ -86,7 +86,7 @@ class Break(optOverNightAlgoLogic):
 
             
             #Updating daily Index
-            previous_day = timeData - 86400         # Subtract 1 day 
+            previous_day = timeData - 86400         # defining previous day by Subtract 1 day 
             if timeData in df_1d.index and df_1d.index.get_loc(timeData) > 1: 
                 # Check if previous day exists
                 while previous_day not in df_1d.index:  

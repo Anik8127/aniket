@@ -91,7 +91,7 @@ class algoLogic(optOverNightAlgoLogic):
             # putCounter= tradecount.get('PE',0)
 
             if ((timeData-1800) in df_30min.index) and self.openPnl.empty:
-                if entry == True and self.humanTime.time() == time(10, 15):    
+                if entry == True and self.humanTime.time() == time(9, 15):    
                 
                     #Call Entry
                     callSym = self.getCallSym(self.timeData, baseSym, df_30min.at[last30MinIndexTimeData[1], "c"],expiry= Currentexpiry, otmFactor=0)

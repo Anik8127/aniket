@@ -116,7 +116,7 @@ if __name__ == "__main__":
     startNow = datetime.now()
 
     devName = "AK"
-    strategyName = "AniketFirstEquityAlgo"
+    strategyName = "R_40_40_30"
     version = "v1"
 
     startDate = datetime(2022, 1, 1, 9, 15)

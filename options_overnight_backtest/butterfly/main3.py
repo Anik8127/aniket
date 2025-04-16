@@ -10,7 +10,7 @@ class algoLogic(optOverNightAlgoLogic):
 
     def run(self, startDate, endDate, baseSym, indexSym):
 
-        col = ["Target", "Stoploss", "Expiry"]
+        col = ["Target", "Stoploss", "Expiry", "orderId"]
         self.addColumnsToOpenPnlDf(col)
 
         startEpoch = startDate.timestamp()
@@ -33,13 +33,13 @@ class algoLogic(optOverNightAlgoLogic):
         df_5min = df_5min[df_5min.index > startEpoch]
         df.to_csv(f"{self.fileDir['backtestResultsCandleData']}{indexName}_1Min.csv")
         df_5min.to_csv(f"{self.fileDir['backtestResultsCandleData']}{indexName}_5Min.csv")
-   
+
         lastIndexTimeData = [0, 0]
         last5MinIndexTimeData = [0, 0]
 
         CurrentExpiry = getExpiryData(startEpoch, baseSym)['CurrentExpiry']
         expiryDatetime = datetime.strptime(CurrentExpiry, "%d%b%y").replace(hour=15, minute=20)
-        expiryEpoch= expiryDatetime.timestamp()
+        expiryEpoch = expiryDatetime.timestamp()
         lotSize = int(getExpiryData(self.timeData, baseSym)["LotSize"])
 
         for timeData in df.index: 
@@ -69,84 +69,136 @@ class algoLogic(optOverNightAlgoLogic):
                         self.strategyLogger.info(e)
             self.pnlCalculator()
 
-            if self.humanTime.date() >= expiryDatetime.date() :
+            if self.humanTime.date() >= expiryDatetime.date():
                 CurrentExpiry = getExpiryData(self.timeData+86400, baseSym)['CurrentExpiry']
                 expiryDatetime = datetime.strptime(CurrentExpiry, "%d%b%y").replace(hour=15, minute=20)
-                expiryEpoch= expiryDatetime.timestamp()
+                expiryEpoch = expiryDatetime.timestamp()
 
             if not self.openPnl.empty:
                 for index, row in self.openPnl.iterrows():
 
                     symSide = row["Symbol"]
-                    symSide = symSide[len(symSide) - 2:]
+                    symType = symSide[len(symSide) - 2:]  # Extract "CE" or "PE" to determine call or put
 
                     if self.timeData > row["Expiry"]:
-                        exitType = f"ExpiryExit, {row['time']}"
-                        self.exitOrder(index, exitType)
+                        # Get the order ID for the current position
+                        orderId = row.get("orderId", None)
 
-            if ((timeData-300) in df_5min.index) and (self.openPnl.empty):
+                        if orderId:
+                            # Filter positions with the same order ID and type (call or put)
+                            positionsToExit = self.openPnl[
+                                (self.openPnl["orderId"] == orderId) &
+                                (self.openPnl["Symbol"].str.endswith(symType))
+                            ]
+
+                            for exitIndex, exitRow in positionsToExit.iterrows():
+                                exitType = f"ExpiryExit, {exitRow['time']}"
+                                self.exitOrder(exitIndex, exitType)
+
+                    elif row["CurrentPrice"] <= row["Target"]:
+                        exitType = "Target Hit"
+                        self.exitOrder(index, exitType, row["CurrentPrice"])
+
+                    elif row["CurrentPrice"] >= row["Stoploss"]:
+                        exitType = "Stoploss Hit"
+                        self.exitOrder(index, exitType, row["CurrentPrice"])
+
+            if ((timeData - 300) in df_5min.index) and (self.openPnl.empty):
+
+                skipEntry = False  # Flag to determine if entries should be skipped
 
                 if df_5min.at[last5MinIndexTimeData[1], "rsiCross60"] == "rsiCross60":
 
+                    # Generate a unique order ID for this group of put entries
+                    orderId = f"PUT-{self.humanTime.strftime('%Y%m%d%H%M%S')}"
+
+                    # First Put Entry
                     putSym = self.getPutSym(self.timeData, baseSym, df_5min.at[last5MinIndexTimeData[1], "c"], CurrentExpiry)
-
                     try:
                         data = self.fetchAndCacheFnoHistData(putSym, lastIndexTimeData[1])
+                        if data is None:
+                            raise Exception(f"No data found for {putSym}")
                     except Exception as e:
                         self.strategyLogger.info(f"Error fetching data for {putSym}: {e}")
-                        
+                        skipEntry = True
 
-                    self.entryOrder(data["c"], putSym, (lotSize*2), "SELL", {"Expiry": expiryEpoch, "time": df.at[lastIndexTimeData[1], "datetime"]})
+                    if not skipEntry:
+                        self.entryOrder(data["c"], putSym, (lotSize * 2), "SELL", {"Expiry": expiryEpoch, "time": df.at[lastIndexTimeData[1], "datetime"], "entrytype": "one", "orderId": orderId})
 
-                    putSym = self.getPutSym(self.timeData, baseSym, df_5min.at[last5MinIndexTimeData[1], "c"], CurrentExpiry, -1)
-
+                    # Second Put Entry
+                    putSym = self.getPutSym(self.timeData, baseSym, df_5min.at[last5MinIndexTimeData[1], "c"], CurrentExpiry, -2)
                     try:
                         data = self.fetchAndCacheFnoHistData(putSym, lastIndexTimeData[1])
+                        if data is None:
+                            raise Exception(f"No data found for {putSym}")
                     except Exception as e:
                         self.strategyLogger.info(f"Error fetching data for {putSym}: {e}")
+                        skipEntry = True
 
-                    self.entryOrder(data["c"], putSym, lotSize, "BUY", {"Expiry": expiryEpoch, "time": df.at[lastIndexTimeData[1], "datetime"]})
+                    if not skipEntry:
+                        self.entryOrder(data["c"], putSym, lotSize, "BUY", {"Expiry": expiryEpoch, "time": df.at[lastIndexTimeData[1], "datetime"], "entrytype": "one", "orderId": orderId})
 
+                    # Third Put Entry
                     putSym = self.getPutSym(self.timeData, baseSym, df_5min.at[last5MinIndexTimeData[1], "c"], CurrentExpiry, 1)
-
                     try:
                         data = self.fetchAndCacheFnoHistData(putSym, lastIndexTimeData[1])
+                        if data is None:
+                            raise Exception(f"No data found for {putSym}")
                     except Exception as e:
                         self.strategyLogger.info(f"Error fetching data for {putSym}: {e}")
+                        skipEntry = True
 
-                    self.entryOrder(data["c"], putSym, lotSize, "BUY", {"Expiry": expiryEpoch, "time": df.at[lastIndexTimeData[1], "datetime"]})
-
+                    if not skipEntry:
+                        self.entryOrder(data["c"], putSym, lotSize, "BUY", {"Expiry": expiryEpoch, "time": df.at[lastIndexTimeData[1], "datetime"], "entrytype": "one", "orderId": orderId})
 
                 elif df_5min.at[last5MinIndexTimeData[1], "rsiCross40"] == "rsiCross40":
 
-                    callSym = self.getCallSym(self.timeData, baseSym, df_5min.at[last5MinIndexTimeData[1], "c"], CurrentExpiry, -1)
+                    # Generate a unique order ID for this group of call entries
+                    orderId = f"CALL-{self.humanTime.strftime('%Y%m%d%H%M%S')}"
 
+                    # First Call Entry
+                    callSym = self.getCallSym(self.timeData, baseSym, df_5min.at[last5MinIndexTimeData[1], "c"], CurrentExpiry, -2)
                     try:
                         data = self.fetchAndCacheFnoHistData(callSym, lastIndexTimeData[1])
+                        if data is None:
+                            raise Exception(f"No data found for {callSym}")
                     except Exception as e:
                         self.strategyLogger.info(f"Error fetching data for {callSym}: {e}")
+                        skipEntry = True
 
-                    self.entryOrder(data["c"], callSym, lotSize, "BUY", {"Expiry": expiryEpoch, "time": df.at[lastIndexTimeData[1], "datetime"]})
+                    if not skipEntry:
+                        self.entryOrder(data["c"], callSym, lotSize, "BUY", {"Expiry": expiryEpoch, "time": df.at[lastIndexTimeData[1], "datetime"], "entrytype": "two", "orderId": orderId})
 
-
+                    # Second Call Entry
                     callSym = self.getCallSym(self.timeData, baseSym, df_5min.at[last5MinIndexTimeData[1], "c"], CurrentExpiry, 1)
-
                     try:
                         data = self.fetchAndCacheFnoHistData(callSym, lastIndexTimeData[1])
+                        if data is None:
+                            raise Exception(f"No data found for {callSym}")
                     except Exception as e:
                         self.strategyLogger.info(f"Error fetching data for {callSym}: {e}")
+                        skipEntry = True
 
-                    self.entryOrder(data["c"], callSym, lotSize, "BUY", {"Expiry": expiryEpoch, "time": df.at[lastIndexTimeData[1], "datetime"]})
+                    if not skipEntry:
+                        self.entryOrder(data["c"], callSym, lotSize, "BUY", {"Expiry": expiryEpoch, "time": df.at[lastIndexTimeData[1], "datetime"], "entrytype": "two", "orderId": orderId})
 
-
+                    # Third Call Entry
                     callSym = self.getCallSym(self.timeData, baseSym, df_5min.at[last5MinIndexTimeData[1], "c"], CurrentExpiry)
-
                     try:
                         data = self.fetchAndCacheFnoHistData(callSym, lastIndexTimeData[1])
+                        if data is None:
+                            raise Exception(f"No data found for {callSym}")
                     except Exception as e:
                         self.strategyLogger.info(f"Error fetching data for {callSym}: {e}")
+                        skipEntry = True
 
-                    self.entryOrder(data["c"], callSym, (lotSize*2), "BUY", {"Expiry": expiryEpoch, "time": df.at[lastIndexTimeData[1], "datetime"]})
+                    if not skipEntry:
+                        self.entryOrder(data["c"], callSym, (lotSize * 2), "BUY", {"Expiry": expiryEpoch, "time": df.at[lastIndexTimeData[1], "datetime"], "entrytype": "two", "orderId": orderId})
+
+                # Skip all entries for this time period if any data fetch failed
+                if skipEntry:
+                    self.strategyLogger.info(f"Skipping all entries for time {self.humanTime} due to missing data.")
+                    return
 
         self.pnlCalculator()
         self.combinePnlCsv()
@@ -157,8 +209,8 @@ class algoLogic(optOverNightAlgoLogic):
 if __name__ == "__main__":
     startTime = datetime.now()
 
-    devName = "NA"
-    strategyName = "coveredCallEveryMonth"
+    devName = "Aniket"
+    strategyName = "RSI Butterfly"
     version = "v1"
 
     startDate = datetime(2022, 1, 1, 9, 15)
@@ -170,13 +222,6 @@ if __name__ == "__main__":
     indexName = "NIFTY 50"
 
     closedPnl, fileDir = algo.run(startDate, endDate, baseSym, indexName)
-
-    print("Calculating Daily Pnl")
-    dr = calculateDailyReport(closedPnl, fileDir, timeFrame=timedelta(minutes=5), mtm=True)
-
-    limitCapital(closedPnl, fileDir, maxCapitalAmount=1000)
-
-    generateReportFile(dr, fileDir)
 
     endTime = datetime.now()
     print(f"Done. Ended in {endTime-startTime}")

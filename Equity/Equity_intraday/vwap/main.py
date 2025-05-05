@@ -44,7 +44,7 @@ class Vwap_Aniket(baseAlgoLogic):
         logger.propagate = False
 
         try:
-            df = getEquityBacktestData(stockName, startTimeEpoch-7776000, endTimeEpoch, "5Min")
+            df = getEquityBacktestData(stockName, startTimeEpoch-7776000, endTimeEpoch, "15Min")
         except Exception as e:
             print(stockName)
             raise Exception(e)
@@ -60,8 +60,8 @@ class Vwap_Aniket(baseAlgoLogic):
         df['vwap_std'] = df['vwap'].rolling(window=20).std()
         df["rsi"] = ta.RSI(df["c"], timeperiod=14)#rsi values using talib library
 
-        df['vwap_upper_2'] = df['vwap'] + 0.5 * df['vwap_std']
-        df['vwap_lower_2'] = df['vwap'] - 0.5 * df['vwap_std']
+        df['vwap_upper_2'] = df['vwap'] + 1.0 * df['vwap_std']
+        df['vwap_lower_2'] = df['vwap'] - 1.0 * df['vwap_std']
 
         df['EntryLong'] = np.where(df['c'] > df['vwap_upper_2'], "EntryLong", "")
         df['EntryShort'] = np.where(df['c'] < df['vwap_lower_2'], "EntryShort", "")
@@ -80,10 +80,11 @@ class Vwap_Aniket(baseAlgoLogic):
             stockAlgoLogic.humanTime = datetime.fromtimestamp(timeData)
 
             if lastIndexTimeData in df.index:
-                logger.info(f"Datetime: {stockAlgoLogic.humanTime}\tStock: {stockName}\tClose: {df.at[lastIndexTimeData,'c']}")
+                logger.info(f"Datetime: {stockAlgoLogic.humanTime}\tStock: {stockName}\tClose: {df.at[lastIndexTimeData,'c']}\tClose: {df.at[lastIndexTimeData,'c']}\trsi: {df.at[lastIndexTimeData,'rsi']}\tvwap: {df.at[lastIndexTimeData,'vwap']}\tvwap_upper_2: {df.at[lastIndexTimeData,'vwap_upper_2']}\tvwap_lower_2: {df.at[lastIndexTimeData,'vwap_lower_2']}")
 
             if not stockAlgoLogic.openPnl.empty:
                 for index, row in stockAlgoLogic.openPnl.iterrows():
+
                     try:
                         stockAlgoLogic.openPnl.at[index, 'CurrentPrice'] = df.at[lastIndexTimeData, "c"]
                     except Exception as e:

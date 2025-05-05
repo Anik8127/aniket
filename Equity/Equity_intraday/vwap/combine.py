@@ -2,7 +2,7 @@ import pandas as pd
 import os
 
 # Folder containing CSV files
-folder_path = "/root/aniket/vwap/BacktestResults/NA_Vwap_Aniket_v1/1/ClosePnlCsv"
+folder_path = "/root/aniket/vwap/BacktestResults/NA_Vwap_Aniket_v1/2/ClosePnlCsv"
 
 # Get list of all CSV files in the folder
 csv_files = [file for file in os.listdir(folder_path) if file.endswith(".csv")]

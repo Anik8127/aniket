@@ -55,22 +55,27 @@ class equityDelta(baseAlgoLogic):
         supertrend_one = ta.supertrend(df["h"], df["l"], df["c"], length=100, multiplier=3.6)
         supertrend_two = ta.supertrend(df["h"], df["l"], df["c"], length=100, multiplier=2.7)
         supertrend_three = ta.supertrend(df["h"], df["l"], df["c"], length=100, multiplier=1.8)
+        stoch_rsi = ta.momentum.stochrsi(df['c'], length=14, rsi_length=14, k=3, d=3)
 
         df['SupertrendColourOne'] = supertrend_one['SUPERTd_100_3.6']
         df['SupertrendColourTwo'] = supertrend_two['SUPERTd_100_2.7']
         df['SupertrendColourThree'] = supertrend_three['SUPERTd_100_1.8']
+        df['Stochastic_rsi'] = stoch_rsi['STOCHRSIk_14_14_3_3']
+        
+        
 
         df['EntryLong'] = np.where(
             (df['SupertrendColourOne'] == 1) &
             (df['SupertrendColourTwo'] == 1) &
-            (df['SupertrendColourThree'] == 1),
+            (df['SupertrendColourThree'] == 1)&
+            (df['Stochastic_rsi'] > 0.8),
             "EntryLong", "")
 
-        df['EntryShort'] = np.where(
-            (df['SupertrendColourOne'] == -1) &
-            (df['SupertrendColourTwo'] == -1) &
-            (df['SupertrendColourThree'] == -1),
-            "EntryShort", "")
+        # df['EntryShort'] = np.where(
+        #     (df['SupertrendColourOne'] == -1) &
+        #     (df['SupertrendColourTwo'] == -1) &
+        #     (df['SupertrendColourThree'] == -1),
+        #     "EntryShort", "")
 
         df['ExitLong'] = np.where(df['SupertrendColourTwo'] == -1, "ExitLong", "")
         df['ExitShort'] = np.where(df['SupertrendColourThree'] == 1, "ExitShort", "")
@@ -138,12 +143,12 @@ if __name__ == "__main__":
     strategyName = "equityDelta"
     version = "v1"
 
-    startDate = datetime(2024, 1, 1, 9, 15)
-    endDate = datetime(2024, 2, 29, 15, 30)
+    startDate = datetime(2021, 1, 1, 9, 15)
+    endDate = datetime(2025, 4, 30, 15, 30)
 
     # portfolio = createPortfolio("/root/akashResearchAndDevelopment/stocksList/nifty500.md", 1)
     # portfolio = createPortfolio("/root/akashResearchAndDevelopment/stocksList/ani.md", 1)
-    portfolio = createPortfolio("/root/aniket/stocks_list_feb24.txt", 1)
+    portfolio = createPortfolio("/root/aniket/stock_names (1).txt", 1)
 
     algoLogicObj = equityDelta(devName, strategyName, version)
     fileDir, closedPnl = algoLogicObj.runBacktest(portfolio, startDate, endDate)

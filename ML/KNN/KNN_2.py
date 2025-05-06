@@ -26,7 +26,7 @@ def fetch_stock_data(stocks, start_date, end_date):
             print(f"Fetching data for stock: {stock}")
 
             # Fetch historical data for the stock with start_date and end_date
-            df = getEquityBacktestData(stock, start_date.timestamp(), end_date.timestamp(), "75min")  # Fetch daily data
+            df = getEquityBacktestData(stock, start_date.timestamp(), end_date.timestamp(), "45min")  # Fetch daily data
             if df is None or df.empty:
                 print(f"Data not found for {stock}. Skipping...")
                 continue  # Skip this stock if no data is found
@@ -111,12 +111,12 @@ def apply_elbow_method(data, max_clusters=10, output_path="/root/aniket/ML/elbow
 # Main function
 def main():
     # Load stock names
-    stock_file = "/root/aniket/nifty_50.md"
+    stock_file = "/root/aniket/stock_list_elbow.txt"
     stocks = load_stock_names(stock_file)
 
     # Define start and end dates
     start_date = pd.Timestamp("2021-01-01")
-    end_date = pd.Timestamp("2024-05-31")
+    end_date = pd.Timestamp("2023-12-31")
 
     # Fetch stock data
     data_frames, valid_stocks = fetch_stock_data(stocks, start_date, end_date)

@@ -115,8 +115,8 @@ def main():
     stocks = load_stock_names(stock_file)
 
     # Define start and end dates
-    start_date = pd.Timestamp("2024-01-01")
-    end_date = pd.Timestamp("2024-01-31")
+    start_date = pd.Timestamp("2021-01-01")
+    end_date = pd.Timestamp("2024-05-31")
 
     # Fetch stock data
     data_frames, valid_stocks = fetch_stock_data(stocks, start_date, end_date)

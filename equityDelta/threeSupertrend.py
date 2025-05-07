@@ -143,7 +143,7 @@ if __name__ == "__main__":
     strategyName = "equityDelta"
     version = "v1"
 
-    startDate = datetime(2021, 1, 1, 9, 15)
+    startDate = datetime(2024, 1, 1, 9, 15)
     endDate = datetime(2025, 4, 30, 15, 30)
 
     # portfolio = createPortfolio("/root/akashResearchAndDevelopment/stocksList/nifty500.md", 1)

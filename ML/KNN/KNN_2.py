@@ -111,7 +111,7 @@ def apply_elbow_method(data, max_clusters=10, output_path="/root/aniket/ML/elbow
 # Main function
 def main():
     # Load stock names
-    stock_file = "/root/aniket/stock_list_elbow.txt"
+    stock_file = "/root/aniket/stocks500.md"
     stocks = load_stock_names(stock_file)
 
     # Define start and end dates

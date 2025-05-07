@@ -61,56 +61,56 @@ class R_40_40_30(baseAlgoLogic):
 
         df_dict = process_stocks_in_parallel(stocks, startTimeEpoch, endTimeEpoch)
 
-        amountPerTrade = 100000
-        lastIndexTimeData = None
+        # amountPerTrade = 100000
+        # lastIndexTimeData = None
 
-        for timeData in df_dict['ADANIENT'].index:
-            for stock in stocks:
-                stockAlgoLogic.timeData = timeData
-                stockAlgoLogic.humanTime = datetime.fromtimestamp(timeData)
-                print(stock, stockAlgoLogic.humanTime)
+        # for timeData in df_dict['ADANIENT'].index:
+        #     for stock in stocks:
+        #         stockAlgoLogic.timeData = timeData
+        #         stockAlgoLogic.humanTime = datetime.fromtimestamp(timeData)
+        #         print(stock, stockAlgoLogic.humanTime)
 
-                stock_openPnl = stockAlgoLogic.openPnl[stockAlgoLogic.openPnl['Symbol'] == stock]
-                if not stock_openPnl.empty:
+        #         stock_openPnl = stockAlgoLogic.openPnl[stockAlgoLogic.openPnl['Symbol'] == stock]
+        #         if not stock_openPnl.empty:
 
-                    for index, row in stock_openPnl.iterrows():
-                        try:
-                            stockAlgoLogic.openPnl.at[index, 'CurrentPrice'] = df_dict[stock].at[lastIndexTimeData, "c"]
-                        except Exception as e:
-                            print(f"Error fetching historical data for {row['Symbol']}")
-                stockAlgoLogic.pnlCalculator()
+        #             for index, row in stock_openPnl.iterrows():
+        #                 try:
+        #                     stockAlgoLogic.openPnl.at[index, 'CurrentPrice'] = df_dict[stock].at[lastIndexTimeData, "c"]
+        #                 except Exception as e:
+        #                     print(f"Error fetching historical data for {row['Symbol']}")
+        #         stockAlgoLogic.pnlCalculator()
 
-                for index, row in stock_openPnl.iterrows():
-                    if lastIndexTimeData in df_dict[stock].index:
-                        if index in stock_openPnl.index:
-                            if stockAlgoLogic.humanTime.time() >= time(15,15):
+        #         for index, row in stock_openPnl.iterrows():
+        #             if lastIndexTimeData in df_dict[stock].index:
+        #                 if index in stock_openPnl.index:
+        #                     if stockAlgoLogic.humanTime.time() >= time(15,15):
 
-                                exitType = "EOD"
-                                stockAlgoLogic.exitOrder(index, exitType, df_dict[stock].at[lastIndexTimeData, "c"])
-                                logger.info(f"EOD- Datetime: {stockAlgoLogic.humanTime}\tStock: {stock}\tClose: {df_dict[stock].at[lastIndexTimeData, 'c']}")
+        #                         exitType = "EOD"
+        #                         stockAlgoLogic.exitOrder(index, exitType, df_dict[stock].at[lastIndexTimeData, "c"])
+        #                         logger.info(f"EOD- Datetime: {stockAlgoLogic.humanTime}\tStock: {stock}\tClose: {df_dict[stock].at[lastIndexTimeData, 'c']}")
 
-                            elif df_dict[stock].at[lastIndexTimeData, "rsi"] > 50 and df_dict[stock].at[lastIndexTimeData, "prev_rsi"] < 50:
+        #                     elif df_dict[stock].at[lastIndexTimeData, "rsi"] > 50 and df_dict[stock].at[lastIndexTimeData, "prev_rsi"] < 50:
 
-                                exitType = "TargetHIt"
-                                stockAlgoLogic.exitOrder(index, exitType, df_dict[stock].at[lastIndexTimeData, "c"])
-                                logger.info(f"TargetHIt- Datetime: {stockAlgoLogic.humanTime}\tStock: {stock}\tClose: {df_dict[stock].at[lastIndexTimeData, 'c']}")
+        #                         exitType = "TargetHIt"
+        #                         stockAlgoLogic.exitOrder(index, exitType, df_dict[stock].at[lastIndexTimeData, "c"])
+        #                         logger.info(f"TargetHIt- Datetime: {stockAlgoLogic.humanTime}\tStock: {stock}\tClose: {df_dict[stock].at[lastIndexTimeData, 'c']}")
 
-                if (lastIndexTimeData in df_dict[stock].index) and (stock_openPnl.empty):
+        #         if (lastIndexTimeData in df_dict[stock].index) and (stock_openPnl.empty):
 
-                    if df_dict[stock].at[lastIndexTimeData, "rsi"] > 30 and df_dict[stock].at[lastIndexTimeData, "prev_rsi"] < 30:
+        #             if df_dict[stock].at[lastIndexTimeData, "rsi"] > 30 and df_dict[stock].at[lastIndexTimeData, "prev_rsi"] < 30:
 
-                        entry_price = df_dict[stock].at[lastIndexTimeData, "c"]
-                        stockAlgoLogic.entryOrder(entry_price, stock, (amountPerTrade // entry_price), "BUY")
-                        logger.info(f"Entry- Datetime: {stockAlgoLogic.humanTime}\tStock: {stock}\tClose: {df_dict[stock].at[lastIndexTimeData, 'c']}")
+        #                 entry_price = df_dict[stock].at[lastIndexTimeData, "c"]
+        #                 stockAlgoLogic.entryOrder(entry_price, stock, (amountPerTrade // entry_price), "BUY")
+        #                 logger.info(f"Entry- Datetime: {stockAlgoLogic.humanTime}\tStock: {stock}\tClose: {df_dict[stock].at[lastIndexTimeData, 'c']}")
 
-                lastIndexTimeData = timeData
-                stockAlgoLogic.pnlCalculator()
+        #         lastIndexTimeData = timeData
+        #         stockAlgoLogic.pnlCalculator()
 
-        for index, row in stockAlgoLogic.openPnl.iterrows():
-            if lastIndexTimeData in df_dict[stock].index:
-                if index in stockAlgoLogic.openPnl.index:
-                    exitType = "TimeUp"
-                    stockAlgoLogic.exitOrder(index, exitType, row['CurrentPrice'])
+        # for index, row in stockAlgoLogic.openPnl.iterrows():
+        #     if lastIndexTimeData in df_dict[stock].index:
+        #         if index in stockAlgoLogic.openPnl.index:
+        #             exitType = "TimeUp"
+        #             stockAlgoLogic.exitOrder(index, exitType, row['CurrentPrice'])
 
 if __name__ == "__main__":
     startNow = datetime.now()

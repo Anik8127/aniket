@@ -12,9 +12,9 @@ from datetime import datetime, timedelta
 from backtestTools.util import createPortfolio, calculateDailyReport, limitCapital, generateReportFile
 
 
-class ADX(baseAlgoLogic):
+class BOLLINGERBAND(baseAlgoLogic):
     def runBacktest(self, portfolio, startDate, endDate):
-        if self.strategyName != "ADX":
+        if self.strategyName != "BOLLINGERBAND":
             raise Exception("Strategy Name Mismatch")
         total_backtests = sum(len(batch) for batch in portfolio)
         completed_backtests = 0
@@ -58,7 +58,7 @@ if __name__ == "__main__":
     startNow = datetime.now()
 
     devName = "NA"
-    strategyName = "ADX"
+    strategyName = "BOLLINGERBAND"
     version = "v1"
 
     startDate = datetime(2025, 1, 1, 9, 15)
@@ -66,7 +66,7 @@ if __name__ == "__main__":
 
     portfolio = createPortfolio("/root/aniket/stockNames/nifty_50.md",2)
 
-    algoLogicObj = ADX(devName, strategyName, version)
+    algoLogicObj = BOLLINGERBAND(devName, strategyName, version)
     fileDir, closedPnl = algoLogicObj.runBacktest(portfolio, startDate, endDate)
 
     dailyReport = calculateDailyReport(closedPnl, fileDir, timeFrame=timedelta(days=1), mtm=True, fno=False)

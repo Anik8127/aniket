@@ -12,9 +12,9 @@ from datetime import datetime, timedelta
 from backtestTools.util import createPortfolio, calculateDailyReport, limitCapital, generateReportFile
 
 
-class EFI(baseAlgoLogic):
+class EMA(baseAlgoLogic):
     def runBacktest(self, portfolio, startDate, endDate):
-        if self.strategyName != "EFI":
+        if self.strategyName != "EMA":
             raise Exception("Strategy Name Mismatch")
         total_backtests = sum(len(batch) for batch in portfolio)
         completed_backtests = 0
@@ -50,6 +50,15 @@ class EFI(baseAlgoLogic):
 
         df.dropna(inplace=True)
         df.index = df.index + 33300
+        # df['ema'] = talib.EMA(df['c'], timeperiod=14)
+
+        # Define the EMA period
+        ema_period = 14
+
+        # Calculate EMA using pandas' ewm() function
+        df['EMA'] = df['c'].ewm(span=ema_period, adjust=False).mean()
+
+
 
         df = df[df.index > startTimeEpoch]
         df.to_csv(f"{self.fileDir['backtestResultsCandleData']}{stockName}_df.csv")
@@ -58,7 +67,7 @@ if __name__ == "__main__":
     startNow = datetime.now()
 
     devName = "NA"
-    strategyName = "EFI"
+    strategyName = "EMA"
     version = "v1"
 
     startDate = datetime(2025, 1, 1, 9, 15)
@@ -66,7 +75,7 @@ if __name__ == "__main__":
 
     portfolio = createPortfolio("/root/aniket/stockNames/nifty_50.md",2)
 
-    algoLogicObj = EFI(devName, strategyName, version)
+    algoLogicObj = EMA(devName, strategyName, version)
     fileDir, closedPnl = algoLogicObj.runBacktest(portfolio, startDate, endDate)
 
     dailyReport = calculateDailyReport(closedPnl, fileDir, timeFrame=timedelta(days=1), mtm=True, fno=False)

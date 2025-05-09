@@ -51,6 +51,18 @@ class BOLLINGERBAND(baseAlgoLogic):
         df.dropna(inplace=True)
         df.index = df.index + 33300
 
+        # Calculate Bollinger Bands
+        window = 20  # Standard period for Bollinger Bands
+
+        # Calculate SMA and Standard Deviation
+        df['SMA'] = df['c'].rolling(window).mean()
+        df['StdDev'] = df['c'].rolling(window).std()
+
+        # Calculate Bollinger Bands
+        df['UpperBand'] = df['SMA'] + (2 * df['StdDev'])
+        df['LowerBand'] = df['SMA'] - (2 * df['StdDev'])
+
+
         df = df[df.index > startTimeEpoch]
         df.to_csv(f"{self.fileDir['backtestResultsCandleData']}{stockName}_df.csv")
 

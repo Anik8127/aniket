@@ -1,5 +1,6 @@
 import talib
 import logging
+import pandas_ta as pd
 import numpy as np
 import multiprocessing
 from termcolor import colored, cprint
@@ -50,6 +51,16 @@ class STOCHASTICRSI(baseAlgoLogic):
 
         df.dropna(inplace=True)
         df.index = df.index + 33300
+        # Calculate RSI
+        rsi = talib.RSI(df['c'], timeperiod=14)
+
+        # Calculate Stochastic RSI
+        stoch_rsi = (rsi - np.min(rsi)) / (np.max(rsi) - np.min(rsi))
+
+        # Optional: Smooth using moving average
+        stoch_rsi_k = pd.Series(stoch_rsi).rolling(window=3).mean()
+        df['stoch_rsi_k'] = stoch_rsi_k
+        df['stoch_rsi_d'] = stoch_rsi_k.rolling(window=3).mean()
 
         df = df[df.index > startTimeEpoch]
         df.to_csv(f"{self.fileDir['backtestResultsCandleData']}{stockName}_df.csv")

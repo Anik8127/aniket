@@ -51,6 +51,13 @@ class V_WAP(baseAlgoLogic):
         df.dropna(inplace=True)
         df.index = df.index + 33300
 
+        # Calculate VWAP
+        df['vwap'] = (df['c'] * df['v']).cumsum() / df['v'].cumsum()
+
+        # Calculate TWAP
+        df['twap'] = df['c'].expanding().mean()
+
+
         df = df[df.index > startTimeEpoch]
         df.to_csv(f"{self.fileDir['backtestResultsCandleData']}{stockName}_df.csv")
 

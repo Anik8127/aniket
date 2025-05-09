@@ -50,6 +50,7 @@ class MACD(baseAlgoLogic):
 
         df.dropna(inplace=True)
         df.index = df.index + 33300
+        df["macd"], df["macdsignal"], df["macdhist"] = talib.MACD(df['c'], fastperiod=12, slowperiod=26, signalperiod=9)
 
         df = df[df.index > startTimeEpoch]
         df.to_csv(f"{self.fileDir['backtestResultsCandleData']}{stockName}_df.csv")

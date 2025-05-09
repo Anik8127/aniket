@@ -50,6 +50,7 @@ class RSI(baseAlgoLogic):
 
         df.dropna(inplace=True)
         df.index = df.index + 33300
+        df['rsi'] = talib.RSI(df['c'], timeperiod=14)
 
         df = df[df.index > startTimeEpoch]
         df.to_csv(f"{self.fileDir['backtestResultsCandleData']}{stockName}_df.csv")

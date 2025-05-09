@@ -51,6 +51,23 @@ class KALTNERCHANNEL(baseAlgoLogic):
         df.dropna(inplace=True)
         df.index = df.index + 33300
 
+        # Define parameters
+        ema_period = 20
+        atr_period = 10
+        multiplier = 2.0
+
+        # Calculate EMA
+        df['EMA'] = df['c'].ewm(span=ema_period, adjust=False).mean()
+
+        # Calculate ATR (simplified version)
+        df['High-Low'] = df['c'].diff().abs()
+        df['ATR'] = df['High-Low'].rolling(atr_period).mean()
+
+        # Calculate Keltner Channels
+        df['UpperBand'] = df['EMA'] + (multiplier * df['ATR'])
+        df['LowerBand'] = df['EMA'] - (multiplier * df['ATR'])
+
+
         df = df[df.index > startTimeEpoch]
         df.to_csv(f"{self.fileDir['backtestResultsCandleData']}{stockName}_df.csv")
 

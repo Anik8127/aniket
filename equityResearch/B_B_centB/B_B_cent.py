@@ -50,6 +50,16 @@ class B_B_CENTB(baseAlgoLogic):
 
         df.dropna(inplace=True)
         df.index = df.index + 33300
+        # Calculate Bollinger Bands
+        window = 20  # Standard period
+        df['SMA'] = df['c'].rolling(window).mean()
+        df['StdDev'] = df['c'].rolling(window).std()
+        df['UpperBand'] = df['SMA'] + (2 * df['StdDev'])
+        df['LowerBand'] = df['SMA'] - (2 * df['StdDev'])
+
+        # Calculate BB%B
+        df['BB_PercentB'] = (df['c'] - df['LowerBand']) / (df['UpperBand'] - df['LowerBand'])
+
 
         df = df[df.index > startTimeEpoch]
         df.to_csv(f"{self.fileDir['backtestResultsCandleData']}{stockName}_df.csv")

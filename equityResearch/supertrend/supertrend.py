@@ -50,6 +50,39 @@ class SUPERTREND(baseAlgoLogic):
 
         df.dropna(inplace=True)
         df.index = df.index + 33300
+        # Calculate ATR
+        atr = talib.ATR(df['h'], df['l'], df['c'], timeperiod=14)
+
+        # Define multiplier
+        multiplier = 3
+
+        # Calculate Basic Bands
+        df['basic_ub'] = (df['h'] + df['l']) / 2 + multiplier * atr
+        df['basic_lb'] = (df['h'] + df['l']) / 2 - multiplier * atr
+
+        # Compute Final Bands
+        df['final_ub'] = df['basic_ub']
+        df['final_lb'] = df['basic_lb']
+
+        # SuperTrend Calculation
+        df['supertrend'] = 0
+        for i in range(1, len(df)):
+            try:
+                # Use .iloc to access rows by position
+                if df['c'].iloc[i] > df['final_ub'].iloc[i-1]:
+                    df.loc[df.index[i], 'supertrend'] = df['final_lb'].iloc[i]
+                elif df['c'].iloc[i] < df['final_lb'].iloc[i-1]:
+                    df.loc[df.index[i], 'supertrend'] = df['final_ub'].iloc[i]
+                else:
+                    df.loc[df.index[i], 'supertrend'] = df['supertrend'].iloc[i-1]
+            except KeyError as e:
+                print(f"KeyError at index {i}: {e}")
+                continue
+
+        # Create Green & Red Columns
+        df['green'] = df['c'] > df['supertrend']
+        df['red'] = df['c'] < df['supertrend']
+
 
         df = df[df.index > startTimeEpoch]
         df.to_csv(f"{self.fileDir['backtestResultsCandleData']}{stockName}_df.csv")

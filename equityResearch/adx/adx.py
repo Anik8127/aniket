@@ -51,6 +51,8 @@ class ADX(baseAlgoLogic):
         df.dropna(inplace=True)
         df.index = df.index + 33300
 
+        df['adx'] = talib.ADX(df['h'], df['l'], df['c'], timeperiod=14)
+
         df = df[df.index > startTimeEpoch]
         df.to_csv(f"{self.fileDir['backtestResultsCandleData']}{stockName}_df.csv")
 

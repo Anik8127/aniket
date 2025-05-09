@@ -50,6 +50,8 @@ class ADX(baseAlgoLogic):
 
         df.dropna(inplace=True)
         df.index = df.index + 33300
+        # Calculate EFI
+        df['EFI'] = (df['c'].diff()) * df['v']
 
         df = df[df.index > startTimeEpoch]
         df.to_csv(f"{self.fileDir['backtestResultsCandleData']}{stockName}_df.csv")

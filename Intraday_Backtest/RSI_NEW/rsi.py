@@ -61,8 +61,8 @@ class algoLogic(optIntraDayAlgoLogic):
 
         df_15min.dropna(inplace=True)#dropping null values
         df_15min['prev_rsi'] = df_15min['rsi'].shift(1)
-        df_15min['putSell'] = np.where((df_15min['rsi'] < 30) & (df_15min['prev_rsi'] > 30), "putSell", "")
-        df_15min['callSell'] = np.where((df_15min['rsi'] > 70) & (df_15min['prev_rsi'] < 70), "callSell", "")
+        df_15min['putSell'] = np.where((df_15min['rsi'] < 30) & (df_15min['rsi'].shift(1) > 30), "putSell", "")
+        df_15min['callSell'] = np.where((df_15min['rsi'] > 70) & (df_15min['rsi'].shift(1) < 70), "callSell", "")
         # df_15min['TakeEntry'] = np.where((df_15min['rsi'] < 30) & (df_15min['prev_rsi'] > 30), "TakeEntry", "")
 
         df_15min = df_15min[df_15min.index >= startEpoch]#df value should be greater than startEpoch

@@ -95,6 +95,13 @@ class algoLogic(optOverNightAlgoLogic):
                     elif row["CurrentPrice"] >= row["Stoploss"]:
                         exitType = "Stoploss Hit"
                         self.exitOrder(index, exitType, row["CurrentPrice"])
+                    
+                    elif not self.openPnl.empty:
+                        for index, row in self.openPnl.iterrows():
+
+                            if self.timeData >= row["Expiry"]:
+                                exitType = "Expiry Exit"
+                                self.exitOrder(index, exitType)
 
 
             # tradecount = self.openPnl['Symbol'].str[-2:].value_counts()

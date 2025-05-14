@@ -37,4 +37,7 @@ stocksList
 # Ignore shell script files
 *.sh
 
-.csv
+*.csv
+
+*.jpg
+*.jpeg

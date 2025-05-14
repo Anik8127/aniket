@@ -54,7 +54,7 @@ class algoLogic(optOverNightAlgoLogic):
             self.humanTime = datetime.fromtimestamp(timeData)
             print(self.humanTime)
 
-            if (self.humanTime.time() < time(9, 16)) | (self.humanTime.time() > time(15, 29)):
+            if (self.humanTime.time() < time(9, 16)) | (self.humanTime.time() > time(15, 00)):
                 continue
 
             lastIndexTimeData.pop(0)
@@ -154,7 +154,7 @@ def create_combined_premium_dataframe(algo, df, baseSym, Currentexpiry):
             humanTime = datetime.fromtimestamp(timeData)
 
             # Skip rows outside trading hours
-            if (humanTime.time() < time(9, 16)) or (humanTime.time() > time(15, 29)):
+            if (humanTime.time() < time(9, 16)) or (humanTime.time() > time(15, 00)):
                 continue
 
             # Get call and put symbols with otmFactor=0
@@ -188,6 +188,7 @@ def create_combined_premium_dataframe(algo, df, baseSym, Currentexpiry):
 
     # Create DataFrame from the collected data
     df_combined = pd.DataFrame(data_list)
+    df_combined['Put-Call Ratio'] = df_combined['PremiumcallSym'] / df_combined['PremiumputSym']
 
     # Drop any rows with missing data
     df_combined.dropna(inplace=True)

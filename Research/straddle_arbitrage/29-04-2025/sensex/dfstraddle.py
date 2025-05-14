@@ -154,7 +154,7 @@ def create_combined_premium_dataframe(algo, df, baseSym, Currentexpiry):
             humanTime = datetime.fromtimestamp(timeData)
 
             # Skip rows outside trading hours
-            if (humanTime.time() < time(9, 16)) or (humanTime.time() > time(15, 29)):
+            if (humanTime.time() < time(9, 16)) or (humanTime.time() > time(15, 00)):
                 continue
 
             # Get call and put symbols with otmFactor=0
@@ -188,6 +188,7 @@ def create_combined_premium_dataframe(algo, df, baseSym, Currentexpiry):
 
     # Create DataFrame from the collected data
     df_combined = pd.DataFrame(data_list)
+    df_combined['Put-Call Ratio'] = df_combined['PremiumcallSym'] / df_combined['PremiumputSym']
 
     # Drop any rows with missing data
     df_combined.dropna(inplace=True)
@@ -202,12 +203,12 @@ if __name__ == "__main__":
     version = "v1"
 
     startDate = datetime(2025, 2, 25, 9, 16)
-    endDate = datetime(2025, 2, 25, 15, 29)
+    endDate = datetime(2025, 2, 25, 15, 00)
 
     algo = algoLogic(devName, strategyName, version)
 
-    baseSym = "NIFTY"
-    indexName = "NIFTY 50"
+    baseSym = "SENSEX"
+    indexName = "SENSEX"
 
     closedPnl, fileDir = algo.run(startDate, endDate, baseSym, indexName)
 

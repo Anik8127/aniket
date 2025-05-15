@@ -2,7 +2,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 # Load the CSV file
-file_path = "/root/aniket/Research/08-05-2025/Nifty/combined_premium.csv"
+file_path = "/root/aniket/Research/straddle_arbitrage/24-04-2025/Nifty/combined_premium.csv"
 data = pd.read_csv(file_path)
 
 # Convert the Datetime column to pandas datetime and set it as the index
@@ -40,9 +40,9 @@ for column in columns_to_plot:
     )
 
     # Save the interactive plot as an HTML file
-    output_file = f"/root/aniket/Research/08-05-2025/Nifty/{column}_interactive_plot.html"
+    output_file = f"/{column}_interactive_plot.html"
     fig.write_html(output_file)
 
-    print(f"Interactive plot for {column} saved as {output_file}")
+    print(f"/root/aniket/Research/straddle_arbitrage/24-04-2025/Nifty/plots/Interactive plot for {column} saved as {output_file}")
 
 print("All interactive plots saved successfully.")

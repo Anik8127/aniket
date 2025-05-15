@@ -40,13 +40,13 @@ class algoLogic(optOverNightAlgoLogic):
             self.humanTime = datetime.fromtimestamp(timeData)
             print(self.humanTime)
 
-            if (self.humanTime.time() < time(9, 16)) | (self.humanTime.time() > time(15, 30)):
+            if (self.humanTime.time() < time(9, 15)) | (self.humanTime.time() > time(15, 00)):
                 continue
 
             lastIndexTimeData.pop(0)
-            lastIndexTimeData.append(timeData - 60)
+            lastIndexTimeData.append(timeData)
 
-            if (self.humanTime.time() < time(9, 16)) | (self.humanTime.time() > time(15, 25)):
+            if (self.humanTime.time() < time(9, 15)) | (self.humanTime.time() > time(15, 00)):
                 continue
 
             if self.humanTime.date() > expiryDatetime.date() :
@@ -54,7 +54,7 @@ class algoLogic(optOverNightAlgoLogic):
                 expiryDatetime = datetime.strptime(CurrentExpiry, "%d%b%y").replace(hour=15, minute=20)
                 expiryEpoch= expiryDatetime.timestamp()
 
-            if (timeData-60 in df.index):
+            if (timeData in df.index):
                     
                     strikePrice = None
                     putSym = self.getPutSym(self.timeData, baseSym, df.at[lastIndexTimeData[1], "c"], CurrentExpiry)
@@ -90,7 +90,7 @@ if __name__ == "__main__":
     strategyName = "strikePriceLog"
     version = "v1"
 
-    startDate = datetime(2025, 5, 2, 9, 16)
+    startDate = datetime(2025, 5, 2, 9, 15)
     endDate = datetime(2025, 5, 30, 15, 00)
 
     algo = algoLogic(devName, strategyName, version)

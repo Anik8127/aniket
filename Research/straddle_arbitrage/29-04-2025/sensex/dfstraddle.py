@@ -202,8 +202,8 @@ if __name__ == "__main__":
     strategyName = "Testing"
     version = "v1"
 
-    startDate = datetime(2025, 2, 25, 9, 16)
-    endDate = datetime(2025, 2, 25, 15, 00)
+    startDate = datetime(2025, 4, 29, 9, 16)
+    endDate = datetime(2025, 4, 29, 15, 00)
 
     algo = algoLogic(devName, strategyName, version)
 

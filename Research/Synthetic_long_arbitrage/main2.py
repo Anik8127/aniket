@@ -134,3 +134,6 @@ if __name__ == "__main__":
 
     endTime = datetime.now()
     print(f"Done. Ended in {endTime-startTime}")
+
+    # Read your CSV file
+    df = pd.read_csv('your_file.csv', parse_dates=['Datetime'])

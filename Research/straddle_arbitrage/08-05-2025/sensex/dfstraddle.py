@@ -202,8 +202,8 @@ if __name__ == "__main__":
     strategyName = "Testing"
     version = "v1"
 
-    startDate = datetime(2025, 5, 8, 9, 16)
-    endDate = datetime(2025, 5, 8, 15, 00)
+    startDate = datetime(2025, 5, 13, 9, 16)
+    endDate = datetime(2025, 5, 15, 15, 29)
 
     algo = algoLogic(devName, strategyName, version)
 
@@ -226,7 +226,7 @@ if __name__ == "__main__":
     combined_premium_df = create_combined_premium_dataframe(algo, df, baseSym, Currentexpiry)
 
     print(combined_premium_df)
-    combined_premium_df.to_csv("combined_premium.csv", index=False)
+    combined_premium_df.to_csv("combined_premium2.csv", index=False)
 
     endTime = datetime.now()
     print(f"Done. Ended in {endTime-startTime}")

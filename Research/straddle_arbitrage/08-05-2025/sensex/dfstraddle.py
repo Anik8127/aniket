@@ -203,7 +203,7 @@ if __name__ == "__main__":
     version = "v1"
 
     startDate = datetime(2025, 5, 13, 9, 16)
-    endDate = datetime(2025, 5, 15, 15, 29)
+    endDate = datetime(2025, 5, 13, 15, 29)
 
     algo = algoLogic(devName, strategyName, version)
 

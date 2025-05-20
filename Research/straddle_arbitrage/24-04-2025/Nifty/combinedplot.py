@@ -64,7 +64,7 @@ fig.update_layout(
 )
 
 # Save the interactive plot as an HTML file
-output_file = "/root/aniket/Research/straddle_arbitrage/24-04-2025/Nifty/COMBINED_interactive_plot.html"
+output_file = "/root/aniket/Research/straddle_arbitrage/24-04-2025/Nifty/COMBINED_interactive_plot2.html"
 fig.write_html(output_file)
 
 # Show the interactive plot

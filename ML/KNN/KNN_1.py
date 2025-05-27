@@ -77,7 +77,7 @@ def plot_clusters(data, kmeans, output_path):
 # Main function
 def main():
     # Load stock names
-    stock_file = "/root/aniket/vwap/stockNifty200.md"
+    stock_file = "/root/aniket/stockNames/nifty_50.md"
     stocks = load_stock_names(stock_file)
 
     # Define start and end dates

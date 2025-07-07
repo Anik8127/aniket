@@ -1,0 +1,19 @@
+.black-dropdown .Select-menu-outer,
+.black-dropdown .Select-menu {
+    background: #fff !important;
+    color: #111 !important;
+}
+.black-dropdown .Select-option {
+    color: #111 !important;
+    background: #fff !important;
+}
+.black-dropdown .Select-option.is-focused {
+    background: #e0e0e0 !important;
+    color: #111 !important;
+}
+.black-dropdown .Select-control,
+.black-dropdown .Select-placeholder,
+.black-dropdown .Select-value {
+    color: #111 !important;
+    background: #fff !important;
+}

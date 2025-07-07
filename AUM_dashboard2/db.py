@@ -5,34 +5,129 @@ import dash
 from dash import dcc, html, Input, Output, callback
 import dash_bootstrap_components as dbc
 
-# Load data
-df = pd.read_csv('aum_data_transformed.csv')
+import pandas as pd
+import numpy as np
+import calendar
+import re
 
-# Ensure correct types
-df['Date'] = pd.to_datetime(df['Date'])
-df['Year'] = df['Date'].dt.year
-df['Month'] = df['Date'].dt.month
-df['AUM_in_Rs_Cr'] = pd.to_numeric(df['AUM_in_Rs_Cr'], errors='coerce')
-df['AUM_Monthwise_Rs.in_Crores'] = pd.to_numeric(df['AUM_Monthwise_Rs.in_Crores'], errors='coerce')
-df['Yearwise_Current_AUM(Rs. in Crores)'] = pd.to_numeric(df['Yearwise_Current_AUM(Rs. in Crores)'], errors='coerce')
+# Helper to get last date of month
+def get_last_date(year, month):
+    last_day = calendar.monthrange(year, month)[1]
+    return f"{year}-{month:02d}-{last_day:02d}"
 
-# Clean up client_id: strip spaces and uppercase for matching
-df['Client_id'] = df['Client_id'].astype(str).str.strip()
+# Broker normalization
+def normalize_broker(client_id, client_name):
+    # List of broker names to check (case-insensitive)
+    broker_list = ["DIVYA PORTFOLIO", "FINDOC", "DB", "LARES"]
+    # Check client_id
+    if isinstance(client_id, str) and client_id.strip().upper() in broker_list:
+        broker = client_id.strip().upper()
+    # Check client_name
+    elif isinstance(client_name, str) and client_name.strip().upper() in broker_list:
+        broker = client_name.strip().upper()
+    else:
+        broker = "Nirmal Bang"
+    # Normalize FINDOC spelling
+    if broker in ["FINDOC", "FINDOC"]:
+        broker = "FINDOC"
+    elif broker == "DIVYA PORTFOLIO":
+        broker = "DIVYA PORTFOLIO"
+    elif broker == "DB":
+        broker = "DB"
+    elif broker == "LARES":
+        broker = "LARES"
+    return broker.title() if broker not in ["FINDOC", "DB"] else broker
 
-# List of broker names to check (case-insensitive)
-broker_id_list = ['DIVYA PORTFOLIO', 'FINDOC', 'SMART EQUITY', 'DB']
+# Read the CSV as raw lines
+with open('/root/aniket/AUM_dashboard2/aum data.csv', encoding='latin1') as f:
+    lines = [line for line in f if line.strip() and not line.startswith('//')]
 
-# If client_id matches any in the list (case-insensitive), set Broker_Name to client_id value
-df['Broker_Name'] = np.where(
-    df['Client_id'].str.upper().isin([b.upper() for b in broker_id_list]),
-    df['Client_id'],
-    df['Broker_Name']
-)
+data_rows = []
+year = None
+header = []
+client_names = []
+months_map = {
+    'JAN': 1, 'FEB': 2, 'MAR': 3, 'APR': 4, 'MAY': 5, 'JUN': 6,
+    'JUL': 7, 'AUG': 8, 'SEP': 9, 'OCT': 10, 'NOV': 11, 'DEC': 12
+}
 
-# Standardize FINDOC/Findoc in Broker_Name to FINDOC
-df['Broker_Name'] = df['Broker_Name'].replace(
-    to_replace=r'(?i)^findoc$', value='FINDOC', regex=True
-)
+i = 0
+while i < len(lines):
+    line = lines[i].strip()
+    # Detect year header
+    if re.match(r'^\d{4},', line):
+        year = int(line.split(',')[0])
+        header = [h.strip() for h in line.split(',')]
+        client_names = [h.strip() for h in lines[i+1].strip().split(',')]
+        i += 2
+        continue
+    # Data row
+    if re.match(r'^[A-Za-z]{3}\d{2,4}|[A-Za-z]{3}-\d{2,4}', line):
+        row = line.split(',')
+        month_str = row[0].strip().upper()
+        # Extract month and year
+        if '-' in month_str:
+            # e.g. Jan-25
+            m, y = month_str.split('-')
+            month = months_map[m[:3].upper()]
+            row_year = int('20' + y) if len(y) == 2 else int(y)
+        else:
+            # e.g. Jan21
+            m, y = month_str[:3], month_str[3:]
+            month = months_map[m.upper()]
+            row_year = int('20' + y) if len(y) == 2 else int(y)
+        date = get_last_date(row_year, month)
+        for idx in range(2, len(row)):
+            client_id = header[idx] if idx < len(header) else ''
+            client_name = client_names[idx] if idx < len(client_names) else ''
+            val = row[idx].strip()
+            if val == '':
+                continue
+            try:
+                aum = float(val)
+            except:
+                continue
+            aum_cr = round(aum * 100000 / 10000000, 2)
+            broker = normalize_broker(client_id, client_name)
+            data_rows.append({
+                'Date': date,
+                'Broker_Name': broker,
+                'Client_id': client_id,
+                'Client_name': client_name,
+                'AUM_in_Rs(Cr)': aum_cr,
+                'Year': row_year,
+                'Month': month
+            })
+    i += 1
+
+df = pd.DataFrame(data_rows)
+
+# AUM_Monthwise_Rs.in_Crores
+df['AUM_Monthwise_Rs.in_Crores'] = df.groupby(['Date', 'Client_id'])['AUM_in_Rs(Cr)'].transform('sum')
+
+# Yearwise_Current_AUM(Rs. in Crores) - Only for December or latest month, sum for all clients
+df['Yearwise_Current_AUM(Rs. in Crores)'] = 0.0
+
+for year in df['Year'].unique():
+    df_year = df[df['Year'] == year]
+    # Prefer December, else latest month
+    if 12 in df_year['Month'].values:
+        target_month = 12
+    else:
+        target_month = df_year['Month'].max()
+    mask = (df['Year'] == year) & (df['Month'] == target_month)
+    total = round(df.loc[mask, 'AUM_in_Rs(Cr)'].sum(), 2)  # <-- round to 2 decimals
+    df.loc[mask, 'Yearwise_Current_AUM(Rs. in Crores)'] = total
+
+# Sort by Date
+df = df.sort_values('Date')
+
+# Select columns as per requirement
+df_final = df[['Date', 'Broker_Name', 'Client_id', 'Client_name', 'AUM_in_Rs(Cr)', 'AUM_Monthwise_Rs.in_Crores', 'Yearwise_Current_AUM(Rs. in Crores)']]
+
+# Save to CSV
+df_final.to_csv('/root/aniket/AUM_dashboard2/aum_data_transformed.csv', index=False)
+print("Transformation complete. Output saved to aum_data_transformed.csv")
 
 # Helper: For each year, get the last available month and use its AUM for dashboard
 def get_year_end_aum(df):

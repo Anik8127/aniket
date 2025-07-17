@@ -17,7 +17,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # -- SETTINGS --
-FOLDER = "/root/aniket/CandleData_1min"   # Change if needed
+FOLDER = "/root/aniket/ML/auto_co/CandleData_1min"   # Change if needed
 TRADING_START = time(9, 30)
 TRADING_END = time(15, 29)
 MAX_RESL_MINUTES = 22500
